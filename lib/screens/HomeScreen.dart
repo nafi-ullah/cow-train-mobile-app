@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cowtrain/screens/ResultScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
@@ -21,6 +22,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String? rearImageUrl;
   double _uploadingPercentage = 0.0;
   double? predictedWeight;
+  bool isLoading=false;
+  String? _selectedGender;
 
   final picker = ImagePicker();
 
@@ -75,11 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _submitImages() async {
+  Future<void> _submitImages(BuildContext context) async {
+    setState(() {
+      isLoading = true;
+    });
     if (sideImageUrl != null && rearImageUrl != null) {
       final url = Uri.parse('http://ec2-65-2-33-18.ap-south-1.compute.amazonaws.com:8080/predict_weight');
       final body = jsonEncode({
-        "gender": "M",
+        "gender": _selectedGender,
         "side_image_link": sideImageUrl,
         "rear_image_link": rearImageUrl,
       });
@@ -97,7 +103,22 @@ class _HomeScreenState extends State<HomeScreen> {
           final parsedResponse = jsonDecode(response.body);
           setState(() {
             predictedWeight = parsedResponse['predicted_weight'];
+            isLoading = false;
           });
+
+          if (predictedWeight != null  ) {
+            print(predictedWeight);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) =>
+                  ResultScreen(rearImageUrl: rearImageUrl!,
+                      sideImageUrl: sideImageUrl!,
+                      predictedWeight: predictedWeight!,
+                      gender: _selectedGender!,
+                  )),
+              // Set to false to remove all previous pages
+            );
+          }
         } else {
           // Handle other status codes
           print('Failed to submit images: ${response.statusCode}');
@@ -121,6 +142,30 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
+              DropdownButton<String>(
+                // The value of the currently selected item
+                value: _selectedGender,
+                // Hint text shown when no item is selected
+                hint: Text('Select Gender'),
+                // The items to display in the dropdown menu
+                items: [
+                  DropdownMenuItem(
+                    value: 'M',
+                    child: Text('Male'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'F',
+                    child: Text('Female'),
+                  ),
+                ],
+                // This callback is called when the user selects an item
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedGender = newValue;
+                  });
+                },
+              ),
+              SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _pickSideImage,
                 child: Text("Pick Side Image"),
@@ -141,16 +186,22 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_uploadingPercentage > 0.0)
                 CircularProgressIndicator(value: _uploadingPercentage / 100),
               SizedBox(height: 20),
+              if (isLoading == false)
               ElevatedButton(
-                onPressed: _submitImages,
+                onPressed: (()=>{
+                  _submitImages(context)
+                }),
                 child: Text("Submit"),
               ),
+              if (isLoading == true)
+                CircularProgressIndicator(),
+
               SizedBox(height: 20),
-              if (predictedWeight != null)
-                Text(
-                  'Predicted Weight: ${predictedWeight?.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+              // if (predictedWeight != null)
+              //   Text(
+              //     'Predicted Weight: ${predictedWeight?.toStringAsFixed(2)}',
+              //     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              //   ),
             ],
           ),
         ),
