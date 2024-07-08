@@ -136,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Cow Weight Predict"),
+        backgroundColor: Colors.brown.shade900,
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -174,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
               sideImageUrl != null
                   ? Image.network(sideImageUrl!)
                   : Text("Image not uploaded."),
+              SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _pickRearImage,
                 child: Text("Pick Rear Image "),

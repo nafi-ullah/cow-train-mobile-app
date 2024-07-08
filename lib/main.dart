@@ -1,4 +1,5 @@
 import 'package:cowtrain/screens/HomeScreen.dart';
+import 'package:cowtrain/screens/SplashScreen.dart';
 import 'package:flutter/material.dart';
 
 
@@ -23,7 +24,8 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: theme,
-      home:  HomeScreen(),
+      debugShowCheckedModeBanner: false,
+      home:  SplashScreen(),
     );
   }
 }
