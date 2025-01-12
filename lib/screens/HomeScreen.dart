@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cowtrain/constants.dart';
 import 'package:cowtrain/screens/ResultScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,7 +10,8 @@ import 'dart:convert';
 final cloudinary = CloudinaryPublic('dhqvosimu', 'jhc18w5a', cache: false);
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.cowData});
+  final Map<String, dynamic> cowData;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -24,8 +26,18 @@ class _HomeScreenState extends State<HomeScreen> {
   double? predictedWeight;
   bool isLoading=false;
   String? _selectedGender;
+  late String cattleId;
+  late String gender;
 
   final picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize cattleId and gender from widget.cowData
+    cattleId = widget.cowData['cattle_id'];
+    gender = widget.cowData['gender'] == "male" ? "M" : "F";
+  }
 
   Future<void> _pickSideImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -83,12 +95,15 @@ class _HomeScreenState extends State<HomeScreen> {
       isLoading = true;
     });
     if (sideImageUrl != null && rearImageUrl != null) {
-      final url = Uri.parse('http://ec2-65-2-33-18.ap-south-1.compute.amazonaws.com:8080/predict_weight');
+      final url = Uri.parse('$uri/predict_weight');
       final body = jsonEncode({
-        "gender": _selectedGender,
-        "side_image_link": sideImageUrl,
-        "rear_image_link": rearImageUrl,
+        "cattle_id": cattleId,
+        "gender": gender,
+        "cattle_side_url": sideImageUrl,
+        "cattle_rear_url": rearImageUrl,
       });
+      print(url);
+      print(body);
 
       try {
         final response = await http.post(
@@ -114,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ResultScreen(rearImageUrl: rearImageUrl!,
                       sideImageUrl: sideImageUrl!,
                       predictedWeight: predictedWeight!,
-                      gender: _selectedGender!,
+                      gender: gender,
                   )),
               // Set to false to remove all previous pages
             );
@@ -143,30 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              DropdownButton<String>(
-                // The value of the currently selected item
-                value: _selectedGender,
-                // Hint text shown when no item is selected
-                hint: Text('Select Gender'),
-                // The items to display in the dropdown menu
-                items: [
-                  DropdownMenuItem(
-                    value: 'M',
-                    child: Text('Male'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'F',
-                    child: Text('Female'),
-                  ),
-                ],
-                // This callback is called when the user selects an item
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedGender = newValue;
-                  });
-                },
-              ),
-              SizedBox(height: 20),
+
+
               ElevatedButton(
                 onPressed: _pickSideImage,
                 child: Text("Pick Side Image"),

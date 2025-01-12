@@ -1,7 +1,8 @@
+import 'package:cowtrain/provider/user_provider.dart';
 import 'package:cowtrain/screens/HomeScreen.dart';
 import 'package:cowtrain/screens/SplashScreen.dart';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 
 
 final theme = ThemeData(
@@ -14,8 +15,13 @@ final theme = ThemeData(
 );
 
 void main() {
-  runApp(const App());
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider(create: (context)=> UserProvider())
+  ],
+
+      child: const App()));
 }
+
 
 class App extends StatelessWidget {
   const App({super.key});

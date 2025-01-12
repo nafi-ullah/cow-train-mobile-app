@@ -40,8 +40,10 @@ dependencies:
   cloudinary_dart: any
   dio: ^5.5.0+1
   image_picker: ^1.1.2
-  http: ^0.13.1
+  http: ^1.2.2
   cloudinary_public: ^0.23.1
+  provider: ^6.1.2
+  shared_preferences: ^2.3.5
 
 dev_dependencies:
   flutter_test:
@@ -52,7 +54,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^3.0.0
+  flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cowtrain/screens/Dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
@@ -82,7 +83,7 @@ Row(
                 onPressed: (()=>{
                 Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => HomeScreen()),
+                MaterialPageRoute(builder: (context) => DashboardScreen()),
                 (route) => false, )
                 }),
                 child: Text("Re-Submit"),

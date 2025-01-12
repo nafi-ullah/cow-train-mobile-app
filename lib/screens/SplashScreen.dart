@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:cowtrain/provider/user_provider.dart';
+import 'package:cowtrain/screens/Dashboard.dart';
 import 'package:cowtrain/screens/HomeScreen.dart';
+import 'package:cowtrain/screens/auth/landingscreen.dart';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 
 
 class SplashScreen extends StatefulWidget {
@@ -21,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(Duration(seconds: 4), () {
       Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen())
+          MaterialPageRoute(builder: (context) =>  Provider.of<UserProvider>(context, listen: false).user.userid.isNotEmpty ?  DashboardScreen() :  LandingScreen())
       );
     });
 
