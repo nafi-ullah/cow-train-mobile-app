@@ -1,9 +1,10 @@
 import 'package:cowtrain/constants.dart';
+import 'package:cowtrain/provider/user_provider.dart';
 import 'package:cowtrain/screens/Dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'package:provider/provider.dart';
 class AddCattleFormScreen extends StatefulWidget {
   @override
   _AddCattleFormScreenState createState() => _AddCattleFormScreenState();
@@ -11,7 +12,8 @@ class AddCattleFormScreen extends StatefulWidget {
 
 class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final String _userId = "XVP5Q1";
+
+  // final String _userId = "XVP5Q1";
   final TextEditingController _colorController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _foodsController = TextEditingController();
@@ -20,7 +22,9 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
   final TextEditingController _priceController = TextEditingController();
   String? _selectedGender;
 
-  Future<void> _submitForm() async {
+  Future<void> _submitForm(BuildContext context) async {
+    final user = Provider.of<UserProvider>(context).user;
+    String _userId = user.userid ;
     if (_formKey.currentState?.validate() ?? false) {
       try {
         final response = await http.post(
@@ -139,7 +143,9 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _submitForm,
+                onPressed: (){
+                  _submitForm(context);
+                },
                 child: Text('Submit'),
               ),
             ],

@@ -1,10 +1,11 @@
 import 'package:cowtrain/constants.dart';
+import 'package:cowtrain/provider/user_provider.dart';
 import 'package:cowtrain/screens/componentscreen/AddCow.dart';
 import 'package:cowtrain/screens/componentscreen/Cowinfo.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'package:provider/provider.dart';
 class DashboardScreen extends StatefulWidget {
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -22,7 +23,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> fetchCattleData() async {
-    final url = Uri.parse('$uri/cattles/XVP5Q1/');
+    final user = Provider.of<UserProvider>(context).user;
+    String userid = user.userid ;
+    final url = Uri.parse('$uri/cattles/$userid/');
     try {
       final response = await http.get(url);
       print(response);
