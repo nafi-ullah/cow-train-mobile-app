@@ -1,8 +1,35 @@
 import 'package:cowtrain/screens/Dashboard.dart';
+import 'package:cowtrain/services/auth_services.dart';
 import 'package:flutter/material.dart';
 
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  TextEditingController emailController = TextEditingController();
+
+  TextEditingController passwordController = TextEditingController();
+
+  final AuthServices authService = AuthServices();
+
+  @override
+  void dispose() {
+    super.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+  }
+
+  void login() {
+    authService.signInUser(
+        context: context,
+        email: emailController.text,
+        password: passwordController.text);
+
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,6 +66,7 @@ class LoginScreen extends StatelessWidget {
               ),
               SizedBox(height: 30),
               TextField(
+                controller: emailController,
                 decoration: InputDecoration(
                   labelText: "Email",
                   border: OutlineInputBorder(
@@ -49,6 +77,7 @@ class LoginScreen extends StatelessWidget {
               SizedBox(height: 20),
               TextField(
                 obscureText: true,
+                controller: passwordController,
                 decoration: InputDecoration(
                   labelText: "Password",
                   border: OutlineInputBorder(
@@ -71,13 +100,7 @@ class LoginScreen extends StatelessWidget {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  // Sign In Functionality
-                  Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) =>  DashboardScreen())
-                  );
-                },
+                onPressed: login,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 131, 57, 0),
                   shape: RoundedRectangleBorder(

@@ -1,3 +1,4 @@
+import 'package:cowtrain/constants.dart';
 import 'package:cowtrain/screens/Dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -20,7 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
     final String email = _emailController.text;
     final String password = _passwordController.text;
 
-    final url = Uri.parse('http://localhost:8000/users');
+    final url = Uri.parse('$uri/users');
     final body = jsonEncode({
       "full_name": fullName,
       "email": email,
