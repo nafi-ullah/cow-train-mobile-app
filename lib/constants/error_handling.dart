@@ -27,8 +27,14 @@ void httpErrorHandle({
   }
 }
 
-void showSnackBar(BuildContext context, String text){
+void showSnackBar(BuildContext context, String text) {
   ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(text)));
+    SnackBar(
+      content: Text(
+        text,
+        style: TextStyle(color: Colors.black), // Set the text color to black
+      ),
+      backgroundColor: Colors.white, // Optional: Set background color to ensure contrast
+    ),
+  );
 }

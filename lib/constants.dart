@@ -1,1 +1,1 @@
-String uri = "http://3.6.92.174:8000";
+String uri = "http://ec2-13-233-130-128.ap-south-1.compute.amazonaws.com:8000";

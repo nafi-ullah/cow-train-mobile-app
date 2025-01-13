@@ -1,4 +1,5 @@
 import 'package:cowtrain/screens/Dashboard.dart';
+import 'package:cowtrain/screens/auth/signup.dart';
 import 'package:cowtrain/services/auth_services.dart';
 import 'package:flutter/material.dart';
 
@@ -120,7 +121,10 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(height: 20),
               TextButton(
                 onPressed: () {
-                  // Navigate to Create Account
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) =>  SignupScreen())
+                  );
                 },
                 child: Text(
                   "Create new account",

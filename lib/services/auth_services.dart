@@ -63,53 +63,76 @@ class AuthServices {
     required String password,
   }) async {
     try {
-      http.Response res = await http.post(Uri.parse('$uri/login'),
-          body: jsonEncode({
-            'email': email,
-            'password': password
-          }),
-          headers: <String, String>{
-            // "Access-Control-Allow-Origin": "*",
-            'Content-Type': 'application/json; charset=UTF-8',
-            // 'Accept': '*/*'
-          }
+      // Ensure the URI is correct
+      print('Requesting: $uri/login');
+
+      // Initial request
+      http.Response res = await http.post(
+        Uri.parse('$uri/login'),
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
       );
 
-      //print(res.body);
+      // Debugging response
+      print('Status Code: ${res.statusCode}');
+      print('Response Body: ${res.body}');
 
+      if (res.statusCode == 307) {
+        // Handle redirect by fetching the "location" header
+        String? redirectUrl = res.headers['location'];
+        if (redirectUrl != null) {
+          print('Redirecting to: $redirectUrl');
+          res = await http.post(
+            Uri.parse(redirectUrl),
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+            }),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+          );
+          print('Redirect Response Status Code: ${res.statusCode}');
+          print('Redirect Response Body: ${res.body}');
+        } else {
+          throw Exception('Redirect location not found');
+        }
+      }
 
-//      print(res.body);
-      httpErrorHandle(
+      if (res.statusCode == 200) {
+        httpErrorHandle(
           response: res,
           context: context,
           onSuccess: () async {
-            // log in er por token store kore rakhbo jeno barbar log in krte na hoy
-
+            // Parse response and handle user data
             SharedPreferences prefs = await SharedPreferences.getInstance();
             Provider.of<UserProvider>(context, listen: false).setUser(res.body);
             await prefs.setString('userid', jsonDecode(res.body)['userid']);
 
+            final user = Provider.of<UserProvider>(context, listen: false).user;
+            print('User Data: ${user.toJson()}');
 
-            final user = Provider
-                .of<UserProvider>(context, listen: false)
-                .user;
-
-            print(user.toJson());
-
-            //shared preference a jst token ta thakbe
+            // Navigate to Dashboard
             Navigator.pushAndRemoveUntil(
-                context,
-                // generateRoute(
-                //     RouteSettings(name: MyHomePage.routeName)
-                // ),
-                MaterialPageRoute(builder: (context) => DashboardScreen()),
-                //same as above
-                    (route) => false);
-          }
-      );
+              context,
+              MaterialPageRoute(builder: (context) => DashboardScreen()),
+                  (route) => false,
+            );
+          },
+        );
+      } else {
+        showSnackBar(context, 'Failed with status code: ${res.statusCode}');
+      }
     } catch (e) {
-      print(e.toString());
+      print('Error occurred: $e');
       showSnackBar(context, e.toString());
     }
   }
+
+
 }

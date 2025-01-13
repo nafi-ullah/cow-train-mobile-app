@@ -13,7 +13,6 @@ class AddCattleFormScreen extends StatefulWidget {
 class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // final String _userId = "XVP5Q1";
   final TextEditingController _colorController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _foodsController = TextEditingController();
@@ -23,8 +22,10 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
   String? _selectedGender;
 
   Future<void> _submitForm(BuildContext context) async {
-    final user = Provider.of<UserProvider>(context).user;
-    String _userId = user.userid ;
+    // Access the provider safely with listen: false
+    final user = Provider.of<UserProvider>(context, listen: false).user;
+    String _userId = user.userid;
+
     if (_formKey.currentState?.validate() ?? false) {
       try {
         final response = await http.post(
@@ -42,8 +43,6 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
           }),
         );
 
-
-
         if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Cattle added successfully!')),
@@ -51,10 +50,10 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
           Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) =>  DashboardScreen())
-          );
+          ); // Navigate back after successful submission
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to add cattle: ${response.reasonPhrase}')),
+            SnackBar(content: Text('Failed to add cattle. Try again.')),
           );
         }
       } catch (e) {
@@ -64,7 +63,6 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

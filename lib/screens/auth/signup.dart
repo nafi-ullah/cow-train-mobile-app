@@ -1,5 +1,6 @@
 import 'package:cowtrain/constants.dart';
 import 'package:cowtrain/screens/Dashboard.dart';
+import 'package:cowtrain/screens/auth/loginscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -31,22 +32,44 @@ class _SignupScreenState extends State<SignupScreen> {
       "phone_number": ""
     });
 
+    print(url);
+    print(body);
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final response = await http.post(
+      // Initial request
+      http.Response response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: body,
       );
 
+      // Handle redirect (if applicable)
+      if (response.statusCode == 307) {
+        String? redirectUrl = response.headers['location'];
+        if (redirectUrl != null) {
+          response = await http.post(
+            Uri.parse(redirectUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: body,
+          );
+        }
+      }
+
+      // Check final response
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text("Signup successful!"),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.white,
         ));
+
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginScreen())
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text("Signup failed: ${response.body}"),
@@ -64,6 +87,7 @@ class _SignupScreenState extends State<SignupScreen> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -139,13 +163,8 @@ class _SignupScreenState extends State<SignupScreen> {
               _isLoading
                   ? CircularProgressIndicator()
                   : ElevatedButton(
-                // onPressed: _signup,
-                onPressed: (){
-                  Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) =>  DashboardScreen())
-                  );
-                },
+                onPressed: _signup,
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 131, 57, 0),
                   shape: RoundedRectangleBorder(
@@ -163,7 +182,12 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               SizedBox(height: 10),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) =>  LoginScreen())
+                  );
+                },
                 child: Text(
                   "Already have an account",
                   style: TextStyle(color: Colors.grey),
