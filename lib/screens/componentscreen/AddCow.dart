@@ -170,8 +170,8 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
               TextFormField(
                 controller: _priceController,
                 decoration: AppTheme.inputDecoration('Price').copyWith(
-                  prefixIcon: Icon(Icons.attach_money_outlined, color: AppTheme.primaryBrown),
-                  prefixText: '\$ ',
+                  prefixIcon: Icon(Icons.money, color: AppTheme.primaryBrown),
+                  prefixText: 'RM ',
                 ),
                 style: AppTheme.bodyLarge,
                 keyboardType: TextInputType.number,

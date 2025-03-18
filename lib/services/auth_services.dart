@@ -11,6 +11,8 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../screens/auth/loginscreen.dart';
+
 class AuthServices {
 
   void signUpUser({
@@ -27,6 +29,7 @@ class AuthServices {
         cattleFarmName: '',
         location: '',
         phoneNumber: '',
+        credit: 0
       );
 
       http.Response res = await http.post(Uri.parse('$uri/users'),
@@ -57,16 +60,21 @@ class AuthServices {
     }
   }
 
+  // Method to check if user is logged in
+  Future<bool> isUserLoggedIn() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userData = prefs.getString('user_data');
+    return userData != null;
+  }
+
   void signInUser({
     required BuildContext context,
     required String email,
     required String password,
   }) async {
     try {
-      // Ensure the URI is correct
       print('Requesting: $uri/login');
 
-      // Initial request
       http.Response res = await http.post(
         Uri.parse('$uri/login'),
         body: jsonEncode({
@@ -78,12 +86,10 @@ class AuthServices {
         },
       );
 
-      // Debugging response
       print('Status Code: ${res.statusCode}');
       print('Response Body: ${res.body}');
 
       if (res.statusCode == 307) {
-        // Handle redirect by fetching the "location" header
         String? redirectUrl = res.headers['location'];
         if (redirectUrl != null) {
           print('Redirecting to: $redirectUrl');
@@ -97,8 +103,6 @@ class AuthServices {
               'Content-Type': 'application/json; charset=UTF-8',
             },
           );
-          print('Redirect Response Status Code: ${res.statusCode}');
-          print('Redirect Response Body: ${res.body}');
         } else {
           throw Exception('Redirect location not found');
         }
@@ -109,19 +113,15 @@ class AuthServices {
           response: res,
           context: context,
           onSuccess: () async {
-            // Parse response and handle user data
             SharedPreferences prefs = await SharedPreferences.getInstance();
+            // Store complete user data
+            await prefs.setString('user_data', res.body);
             Provider.of<UserProvider>(context, listen: false).setUser(res.body);
-            await prefs.setString('userid', jsonDecode(res.body)['userid']);
 
-            final user = Provider.of<UserProvider>(context, listen: false).user;
-            print('User Data: ${user.toJson()}');
-
-            // Navigate to Dashboard
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => DashboardScreen()),
-                  (route) => false,
+              (route) => false,
             );
           },
         );
@@ -134,5 +134,21 @@ class AuthServices {
     }
   }
 
-
+  // Method to handle logout
+  Future<void> logout(BuildContext context) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.clear(); // Clear all stored data
+      Provider.of<UserProvider>(context, listen: false).clearUser();
+      
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      print('Error during logout: $e');
+      showSnackBar(context, 'Error during logout');
+    }
+  }
 }

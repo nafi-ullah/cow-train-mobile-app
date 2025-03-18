@@ -10,6 +10,8 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../services/auth_services.dart';
+
 class DashboardScreen extends StatefulWidget {
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -19,19 +21,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<dynamic> cattleData = [];
   bool isLoading = true;
   bool hasError = false;
+  int credit = 0;
+
+
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => fetchCattleData());
+
+    // Delay to ensure context is available
+    Future.delayed(Duration.zero, () {
+      // final user = Provider.of<UserProvider>(context, listen: false).user;
+      // setState(() {
+      //   credit = user.credit ?? 0;
+      // });
+      fetchUserData();
+      fetchCattleData();
+    });
   }
 
   void _logout(BuildContext context) {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-          (route) => false,
-    );
+    final authService = AuthServices();
+    authService.logout(context);
+  }
+
+  Future<void> fetchUserData() async {
+    try {
+      final user = Provider.of<UserProvider>(context, listen: false).user;
+      final url = Uri.parse('$uri/users');
+      final response = await http.get(url);
+      print(response.statusCode);
+      if (response.statusCode == 200) {
+        List<dynamic> users = json.decode(response.body);
+
+        // Find the current user by matching userId
+        final currentUser = users.firstWhere((u) => u['userid'] == user.userid, orElse: () => null);
+
+        if (currentUser != null) {
+          // Update the user's credit in the provider
+          final newCredit = currentUser['credit'];
+          Provider.of<UserProvider>(context, listen: false).updateCredit(newCredit);
+          setState(() {
+            credit = newCredit;
+          });
+        } else {
+          setState(() {
+            hasError = true;
+            isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          hasError = true;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        hasError = true;
+        isLoading = false;
+      });
+      print('Error fetching user data: $e');
+    }
   }
 
   Future<void> fetchCattleData() async {
@@ -61,17 +112,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+
+  Future<void> fetchall() async {
+    try {
+      fetchUserData();
+      fetchCattleData();
+    } catch (e) {
+      setState(() {
+        hasError = true;
+        isLoading = false;
+      });
+      print('Error fetching data: $e');
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: Text(
-          'Cattle Dashboard',
-          style: AppTheme.headingLarge,
-        ),
+        title: Row(
+    children: [
+      Image.asset(
+        'assets/images/ipinfralogo.png',
+        height: 30, // Adjust size as needed
+      ),
+      SizedBox(width: 8), // Adds some spacing between the logo and text
+      Text(
+        'Dashboard',
+        style: AppTheme.headingLarge,
+      ),
+    ],
+  ),
         actions: [
           IconButton(
             icon: Icon(Icons.add_circle_outline, color: AppTheme.primaryBrown, size: 28),
@@ -106,49 +183,94 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: fetchCattleData,
+        onRefresh: fetchall,
         color: AppTheme.primaryBrown,
         child: SingleChildScrollView(
           physics: AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: EdgeInsets.all(AppTheme.spacingL),
-                child: Container(
-                  padding: EdgeInsets.all(AppTheme.spacingL),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppTheme.primaryBrown, AppTheme.lightBrown],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryBrown.withOpacity(0.2),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total Cattle',
-                        style: AppTheme.bodyLarge.copyWith(color: Colors.white.withOpacity(0.9)),
-                      ),
-                      SizedBox(height: AppTheme.spacingS),
-                      Text(
-                        '${cattleData.length}',
-                        style: AppTheme.headingLarge.copyWith(
-                          color: Colors.white,
-                          fontSize: 36,
+              SingleChildScrollView(
+
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(AppTheme.spacingL),
+                      child: Container(
+                        padding: EdgeInsets.all(AppTheme.spacingL),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.primaryBrown, AppTheme.lightBrown],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryBrown.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Total Cattle',
+                              style: AppTheme.bodyLarge.copyWith(color: Colors.white.withOpacity(0.9)),
+                            ),
+                            SizedBox(height: AppTheme.spacingS),
+                            Text(
+                              '${cattleData.length}',
+                              style: AppTheme.headingLarge.copyWith(
+                                color: Colors.white,
+                                fontSize: 36,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.all(AppTheme.spacingL),
+                      child: Container(
+                        padding: EdgeInsets.all(AppTheme.spacingL),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.primaryBrown, AppTheme.lightBrown],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryBrown.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Your Credit',
+                              style: AppTheme.bodyLarge.copyWith(color: Colors.white.withOpacity(0.9)),
+                            ),
+                            SizedBox(height: AppTheme.spacingS),
+                            Text(
+                              '${credit ?? 0}',
+                              style: AppTheme.headingLarge.copyWith(
+                                color: Colors.white,
+                                fontSize: 36,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
                 ),
               ),
               Padding(
@@ -245,7 +367,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             borderRadius: BorderRadius.circular(20),
                                           ),
                                           child: Text(
-                                            '\$${cow['price']}',
+                                            'RM${cow['price']}',
                                             style: AppTheme.bodyMedium.copyWith(
                                               color: AppTheme.darkGreen,
                                               fontWeight: FontWeight.w600,
@@ -257,14 +379,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     SizedBox(height: AppTheme.spacingM),
                                     Row(
                                       children: [
-                                        _buildInfoChip(Icons.cake_outlined, "${cow['age']} y"),
-                                        SizedBox(width: AppTheme.spacingM),
+                                        _buildInfoChip(Icons.cake_outlined, "${cow['age']}y"),
+                                        SizedBox(width: AppTheme.spacingS),
                                         _buildInfoChip(Icons.palette_outlined, cow['color']),
                                         if (hasWeightPredictions) ...[
                                           SizedBox(width: AppTheme.spacingM),
                                           _buildInfoChip(
                                             Icons.scale_outlined,
-                                            "${weightPrediction['weight'].toStringAsFixed(0)} kg",
+                                            "${weightPrediction['weight'].toStringAsFixed(0)}kg",
                                           ),
                                         ],
                                       ],

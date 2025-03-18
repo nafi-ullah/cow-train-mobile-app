@@ -50,7 +50,7 @@ class CowInfoScreen extends StatelessWidget {
                       SizedBox(height: AppTheme.spacingS),
                       _buildDetailRow(Icons.palette_outlined, "Color", cowData['color']),
                       SizedBox(height: AppTheme.spacingS),
-                      _buildDetailRow(Icons.attach_money_outlined, "Price", "\$${cowData['price']}"),
+                      _buildDetailRow(Icons.attach_money_outlined, "Price", "RM${cowData['price']}"),
                     ],
                   ),
                 ),

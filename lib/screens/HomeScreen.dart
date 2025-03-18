@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cowtrain/constants.dart';
+import 'package:cowtrain/provider/user_provider.dart';
 import 'package:cowtrain/screens/ResultScreen.dart';
 import 'package:cowtrain/constants/theme_constants.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'package:provider/provider.dart';
 final cloudinary = CloudinaryPublic('dhqvosimu', 'jhc18w5a', cache: false);
 
 class HomeScreen extends StatefulWidget {
@@ -188,35 +189,57 @@ class _HomeScreenState extends State<HomeScreen> {
           headers: {'Content-Type': 'application/json'},
           body: body,
         );
-
+        print(response.statusCode);
+        print(jsonDecode(response.body));
+        final responseData = jsonDecode(response.body);
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
         if (response.statusCode == 200) {
           // Handle successful submission
-          print('Images submitted successfully');
-          final parsedResponse = jsonDecode(response.body);
+
+          final remainingCredits = responseData['remaining_credits'] as int;
+          final predictedWeightValue = responseData['predicted_weight'];
+
+          // Update UserProvider credit
+
+          userProvider.updateCredit(remainingCredits);
+
+
           setState(() {
-            predictedWeight = parsedResponse['predicted_weight'];
-            isLoading = false;
+            predictedWeight = predictedWeightValue;
           });
 
-          if (predictedWeight != null  ) {
-            print(predictedWeight);
+          // Navigate only if `predictedWeight` is valid
+          if (predictedWeight != null) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) =>
-                  ResultScreen(rearImageUrl: rearImageUrl!,
-                    sideImageUrl: sideImageUrl!,
-                    predictedWeight: predictedWeight!,
-                    gender: gender,
-                  )),
-              // Set to false to remove all previous pages
+              MaterialPageRoute(
+                builder: (context) => ResultScreen(
+                  rearImageUrl: rearImageUrl!,
+                  sideImageUrl: sideImageUrl!,
+                  predictedWeight: predictedWeight!,
+                  gender: gender,
+                ),
+              ),
             );
           }
         } else {
           // Handle other status codes
+          if (responseData.containsKey('detail') && responseData['detail'].toString().contains('402')) {
+            userProvider.updateCredit(0);
+            _showErrorDialog(context, "Please mail to sales@ipinfra.com.my for get credit.");
+          } else {
+            _showErrorDialog(context, "Something went wrong, please try again later.");
+          }
           print('Failed to submit images: ${response.statusCode}');
         }
+
       } catch (e) {
+
         print('Error submitting images: $e');
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
       }
     } else {
       print('Please select both side and rear images');
@@ -281,6 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: AppTheme.spacingM),
               Container(
+                width: double.infinity,
                 decoration: AppTheme.cardDecoration,
                 child: Column(
                   children: [
@@ -329,6 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: AppTheme.spacingM),
               Container(
+                width: double.infinity,
                 decoration: AppTheme.cardDecoration,
                 child: Column(
                   children: [
@@ -436,4 +461,120 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+// void _showErrorDialog(BuildContext context, String message) {
+//   showDialog(
+//     context: context,
+//     builder: (ctx) => AlertDialog(
+//       title: Text("Problem"),
+//       content: Text(message),
+//       actions: [
+//         TextButton(
+//           onPressed: () => Navigator.of(ctx).pop(),
+//           child: Text("OK"),
+//         ),
+//       ],
+//     ),
+//   );
+// }
+
+
+void _showErrorDialog(BuildContext context, String message) {
+  final TextEditingController _creditController = TextEditingController();
+  bool _isButtonEnabled = false;
+
+  // Enable button only when the input field is not empty
+  void _onTextChanged() {
+    _isButtonEnabled = _creditController.text.isNotEmpty;
+  }
+
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        title: Text("Low Credit Problem"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message),
+            SizedBox(height: 16),
+            Text("You can also request credit from the authorities by submitting a request with the desired amount."),
+            SizedBox(height: 16),
+            TextField(
+              controller: _creditController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: "Credit Amount",
+                border: OutlineInputBorder(),
+                hintText: "Enter amount",
+              ),
+              onChanged: (value) {
+                _onTextChanged();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          // Button for "Send Request"
+           TextButton(
+            onPressed: () async {
+              final user = Provider.of<UserProvider>(context, listen: false).user;
+              final requestCredit = int.tryParse(_creditController.text);
+
+              if (requestCredit == null || requestCredit <= 0) {
+                Navigator.of(ctx).pop();
+                _showErrorDialog(context, "Please enter a valid amount.");
+                return;
+              }
+
+              try {
+                final url = Uri.parse('http://13.233.130.128:8000/credit-request/');
+
+                final client = http.Client();
+                final response = await client.post(
+                  url,
+                  headers: {
+                    'accept': 'application/json',
+                    'Content-Type': 'application/json',
+                  },
+                  body: json.encode({
+                    "user_id": user.userid,
+                    "request_credit": requestCredit,
+                  }),
+                );
+                client.close();
+                // print(user.userid);
+                // print(requestCredit);
+                // print('Response status: ${response.statusCode}');
+                // print('Response body: ${response.body}');
+
+                if (response.statusCode == 200) {
+                  // Handle success (show success dialog or snackbar)
+                  Navigator.of(ctx).pop(); // Close the dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Credit request sent successfully")),
+                  );
+                } else {
+                  Navigator.of(ctx).pop();
+                  _showErrorDialog(context, "Failed to send credit request.");
+                }
+              } catch (e) {
+                Navigator.of(ctx).pop();
+                _showErrorDialog(context, "Error occurred: $e");
+              }
+            },
+            child: Text("Send Request"),
+          ),
+              // Do not show button if input is empty
+
+          // Close Button
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text("Cancel"),
+          ),
+        ],
+      );
+    },
+  );
 }
