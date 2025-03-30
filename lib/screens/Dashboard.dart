@@ -312,105 +312,157 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   itemCount: cattleData.length,
                   itemBuilder: (context, index) {
                     final cow = cattleData[index];
+                    final cowId = cow['cattle_id'];
                     final weightPredictions = cow['weight_predictions'];
                     final hasWeightPredictions = weightPredictions.isNotEmpty;
                     final weightPrediction = hasWeightPredictions ? weightPredictions[0] : null;
 
-                    return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: AppTheme.spacingL,
-                        vertical: AppTheme.spacingM,
-                      ),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CowInfoScreen(cowData: cow),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          decoration: AppTheme.cardDecoration,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (hasWeightPredictions)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                                  child: Image.network(
-                                    weightPrediction['cattle_side_url'],
-                                    height: 200,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              Padding(
-                                padding: EdgeInsets.all(AppTheme.spacingL),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          cow['name'],
-                                          style: AppTheme.headingMedium,
-                                        ),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: AppTheme.spacingM,
-                                            vertical: AppTheme.spacingS,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.lightGreen.withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: Text(
-                                            'RM${cow['price']}',
-                                            style: AppTheme.bodyMedium.copyWith(
-                                              color: AppTheme.darkGreen,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: AppTheme.spacingM),
-                                    Row(
-                                      children: [
-                                        _buildInfoChip(Icons.cake_outlined, "${cow['age']}y"),
-                                        SizedBox(width: AppTheme.spacingS),
-                                        _buildInfoChip(Icons.palette_outlined, cow['color']),
-                                        if (hasWeightPredictions) ...[
-                                          SizedBox(width: AppTheme.spacingM),
-                                          _buildInfoChip(
-                                            Icons.scale_outlined,
-                                            "${weightPrediction['weight'].toStringAsFixed(0)}kg",
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    if (hasWeightPredictions) ...[
-                                      SizedBox(height: AppTheme.spacingM),
-                                      Text(
-                                        "Last Updated: ${weightPrediction['date']}",
-                                        style: AppTheme.bodyMedium.copyWith(
-                                          color: AppTheme.textSecondary,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
+                    return Dismissible(
+                      key: ValueKey(cowId),
+                      direction: DismissDirection.endToStart,
+                      confirmDismiss: (direction) async {
+                        return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text("Confirm Deletion"),
+                            content: Text("Are you sure you want to delete '${cow['name']}'?"),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: Text("Cancel"),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: Text("Delete", style: TextStyle(color: Colors.red)),
                               ),
                             ],
+                          ),
+                        );
+                      },
+                      onDismissed: (direction) async {
+                        final url = Uri.parse("http://13.233.130.128:8000/cattle/$cowId");
+
+                        try {
+                          final response = await http.delete(url);
+                          if (response.statusCode == 200) {
+                            setState(() {
+                              cattleData.removeAt(index);
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Deleted '${cow['name']}'")),
+                            );
+                          } else {
+                            throw Exception("Failed to delete");
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Error deleting '${cow['name']}': $e")),
+                          );
+                        }
+                      },
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        color: Colors.red,
+                        // child: Icon(Icons.delete, color: Colors.white),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacingL,
+                          vertical: AppTheme.spacingM,
+                        ),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CowInfoScreen(cowData: cow),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            decoration: AppTheme.cardDecoration,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (hasWeightPredictions)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                                    child: Image.network(
+                                      weightPrediction['cattle_side_url'],
+                                      height: 200,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                Padding(
+                                  padding: EdgeInsets.all(AppTheme.spacingL),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            cow['name'],
+                                            style: AppTheme.headingMedium,
+                                          ),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: AppTheme.spacingM,
+                                              vertical: AppTheme.spacingS,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.lightGreen.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              'RM${cow['price']}',
+                                              style: AppTheme.bodyMedium.copyWith(
+                                                color: AppTheme.darkGreen,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: AppTheme.spacingM),
+                                      Row(
+                                        children: [
+                                          _buildInfoChip(Icons.cake_outlined, "${cow['age']}y"),
+                                          SizedBox(width: AppTheme.spacingS),
+                                          _buildInfoChip(Icons.palette_outlined, cow['color']),
+                                          if (hasWeightPredictions) ...[
+                                            SizedBox(width: AppTheme.spacingM),
+                                            _buildInfoChip(
+                                              Icons.scale_outlined,
+                                              "${weightPrediction['weight'].toStringAsFixed(0)}kg",
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      if (hasWeightPredictions) ...[
+                                        SizedBox(height: AppTheme.spacingM),
+                                        Text(
+                                          "Last Updated: ${weightPrediction['date']}",
+                                          style: AppTheme.bodyMedium.copyWith(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     );
                   },
                 ),
+
               SizedBox(height: AppTheme.spacingXL),
             ],
           ),

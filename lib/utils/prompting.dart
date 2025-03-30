@@ -37,66 +37,8 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Cow Details Card
-              Container(
-                decoration: AppTheme.cardDecoration,
-                child: Padding(
-                  padding: EdgeInsets.all(AppTheme.spacingL),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Cattle Details",
-                        style: AppTheme.headingMedium,
-                      ),
-                      SizedBox(height: AppTheme.spacingM),
-                      _buildDetailRow(Icons.pets_outlined, "Name", widget.cowData['name']),
-                      SizedBox(height: AppTheme.spacingS),
-                      _buildDetailRow(Icons.calendar_today_outlined, "Age", "${widget.cowData['age']} years - ${widget.cowData['gender']} "),
-                      SizedBox(height: AppTheme.spacingS),
-                      _buildDetailRow(Icons.palette_outlined, "Color", widget.cowData['color']),
-                      SizedBox(height: AppTheme.spacingS),
-                      _buildDetailRow(Icons.attach_money_outlined, "Price", "RM${widget.cowData['price']}"),
-                      SizedBox(height: AppTheme.spacingS),
-                      if (widget.cowData['description'] != null && widget.cowData['description'].toString().isNotEmpty)
-                        _buildDetailDescription(Icons.description, "", widget.cowData['description']),
 
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: AppTheme.spacingL),
 
-              // Add Weight Button
-              Center(
-                child: ElevatedButton.icon(
-                  style: AppTheme.primaryButton,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HomeScreen(cowData: widget.cowData),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.add_photo_alternate_outlined),
-                  label: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-                    child: Text(
-                      "Add New Weight Measurement",
-                      style: AppTheme.bodyLarge.copyWith(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: AppTheme.spacingXL),
-
-              // Weight Predictions Section
-              Text(
-                "Weight History",
-                style: AppTheme.headingMedium,
-              ),
-              SizedBox(height: AppTheme.spacingM),
 
               if (weightPredictions.isEmpty)
                 Center(
@@ -214,46 +156,4 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: AppTheme.primaryBrown,
-        ),
-        SizedBox(width: AppTheme.spacingM),
-        Text(
-          "$label: ",
-          style: AppTheme.bodyMedium.copyWith(
-            color: AppTheme.textSecondary,
-          ),
-        ),
-        Text(
-          value,
-          style: AppTheme.bodyLarge.copyWith(
-            color: AppTheme.textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildDetailDescription(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start, // Aligns text to the top
-      children: [
-        Icon(icon, color: AppTheme.primaryBrown),
-        SizedBox(width: AppTheme.spacingM),
-        Expanded(
-          child: Text(
-            "$value",
-            style: AppTheme.bodyLarge,
-            softWrap: true, // Ensures text wraps
-            overflow: TextOverflow.visible, // Prevents text clipping
-          ),
-        ),
-      ],
-    );
-  }
-}

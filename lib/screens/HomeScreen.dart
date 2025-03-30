@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedGender;
   late String cattleId;
   late String gender;
+  final TextEditingController _descriptionController = TextEditingController();
 
   final picker = ImagePicker();
 
@@ -38,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Initialize cattleId and gender from widget.cowData
     cattleId = widget.cowData['cattle_id'];
-    gender = widget.cowData['gender'] == "male" ? "M" : "F";
+    gender = widget.cowData['gender'] == "Male" ? "M" : "F";
   }
 
   Future<void> _showImageSourceDialog({required bool isSideImage}) async {
@@ -179,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
         "gender": gender,
         "cattle_side_url": sideImageUrl,
         "cattle_rear_url": rearImageUrl,
+        "description": _descriptionController.text
       });
       print(url);
       print(body);
@@ -218,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   sideImageUrl: sideImageUrl!,
                   predictedWeight: predictedWeight!,
                   gender: gender,
+                  description: _descriptionController.text
                 ),
               ),
             );
@@ -416,7 +419,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
 
               SizedBox(height: AppTheme.spacingXL),
-
+              TextFormField(
+                controller: _descriptionController,
+                decoration: AppTheme.inputDecoration('Description').copyWith(
+                  prefixIcon: Icon(Icons.description, color: AppTheme.primaryBrown),
+                ),
+                style: AppTheme.bodyLarge,
+                maxLines: null, // Allows text to expand vertically
+                minLines: 2, // Ensures at least 2 lines of space
+                keyboardType: TextInputType.multiline, // Enables multiline input
+                scrollPhysics: BouncingScrollPhysics(), // Adds a smooth scroll effect
+              ),
+              SizedBox(height: AppTheme.spacingXL),
               // Submit Button
               if (!isLoading && sideImageUrl != null && rearImageUrl != null)
                 Container(
@@ -455,6 +469,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+
+
             ],
           ),
         ),

@@ -21,6 +21,7 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _teethController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   String? _selectedGender;
 
   Future<void> _submitForm(BuildContext context) async {
@@ -41,9 +42,12 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
             "teeth_number": int.parse(_teethController.text),
             "foods": _foodsController.text,
             "price": double.parse(_priceController.text),
+            "description": _descriptionController.text,
             "gender": _selectedGender,
           }),
         );
+
+        print(response.body);
 
         if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -177,6 +181,20 @@ class _AddCattleFormScreenState extends State<AddCattleFormScreen> {
                 keyboardType: TextInputType.number,
                 validator: (value) => value?.isEmpty ?? true ? 'Please enter the price' : null,
               ),
+              SizedBox(height: AppTheme.spacingXL),
+
+              TextFormField(
+                controller: _descriptionController,
+                decoration: AppTheme.inputDecoration('Description').copyWith(
+                  prefixIcon: Icon(Icons.description, color: AppTheme.primaryBrown),
+                ),
+                style: AppTheme.bodyLarge,
+                maxLines: null, // Allows text to expand vertically
+                minLines: 2, // Ensures at least 2 lines of space
+                keyboardType: TextInputType.multiline, // Enables multiline input
+                scrollPhysics: BouncingScrollPhysics(), // Adds a smooth scroll effect
+              ),
+
               SizedBox(height: AppTheme.spacingXL),
 
               // Submit Button

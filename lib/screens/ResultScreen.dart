@@ -15,12 +15,14 @@ class ResultScreen extends StatefulWidget {
     required this.sideImageUrl,
     required this.predictedWeight,
     required this.gender,
+    required this.description,
   });
 
   final String sideImageUrl;
   final String rearImageUrl;
   final double predictedWeight;
   final String gender;
+  final String description;
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -102,13 +104,17 @@ class _ResultScreenState extends State<ResultScreen> {
                     // Details
                     Padding(
                       padding: EdgeInsets.all(AppTheme.spacingL),
-                      child: Row(
+                      child: Column(
                         children: [
                           _buildDetailItem(
                             icon: Icons.person_outline,
                             label: "Gender",
                             value: widget.gender == 'M' ? 'Male' : 'Female',
                           ),
+                          SizedBox(height: AppTheme.spacingS),
+                          if (widget.description != null && widget.description.toString().isNotEmpty)
+                            _buildDetailDescription(Icons.description, "", widget.description),
+
                         ],
                       ),
                     ),
@@ -286,6 +292,24 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailDescription(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start, // Aligns text to the top
+      children: [
+        Icon(icon, color: AppTheme.primaryBrown),
+        SizedBox(width: AppTheme.spacingM),
+        Expanded(
+          child: Text(
+            "$value",
+            style: AppTheme.bodyLarge,
+            softWrap: true, // Ensures text wraps
+            overflow: TextOverflow.visible, // Prevents text clipping
+          ),
         ),
       ],
     );
