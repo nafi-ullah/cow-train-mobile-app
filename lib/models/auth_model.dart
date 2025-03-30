@@ -7,6 +7,7 @@ class User {
   final String cattleFarmName;
   final String location;
   final String phoneNumber;
+  late final int credit;
 
   User({
     required this.userid,
@@ -15,6 +16,7 @@ class User {
     required this.cattleFarmName,
     required this.location,
     required this.phoneNumber,
+    required this.credit
   });
 
   // JSON serialization
@@ -26,6 +28,7 @@ class User {
       'cattle_farm_name': cattleFarmName,
       'location': location,
       'phone_number': phoneNumber,
+      'credit': credit,
     };
   }
 
@@ -37,6 +40,7 @@ class User {
       cattleFarmName: map['cattle_farm_name'] ?? '',
       location: map['location'] ?? '',
       phoneNumber: map['phone_number'] ?? '',
+      credit: map['credit'] ?? '',
     );
   }
 

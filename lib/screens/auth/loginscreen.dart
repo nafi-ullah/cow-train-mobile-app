@@ -2,7 +2,7 @@ import 'package:cowtrain/screens/Dashboard.dart';
 import 'package:cowtrain/screens/auth/signup.dart';
 import 'package:cowtrain/services/auth_services.dart';
 import 'package:flutter/material.dart';
-
+import 'package:cowtrain/constants/theme_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -34,137 +34,95 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 40.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Placeholder for asset
-              Image.asset(
-                "assets/images/landingscreen.png",
-                height: 200,
-                width: 200,
-              ),
-              SizedBox(height: 30),
-              Text(
-                "Login here",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: const Color.fromARGB(255, 131, 57, 0),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(AppTheme.spacingL),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Image.asset(
+                  "assets/images/landingscreen.png",
+                  height: 180,
+                  width: 180,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 10),
-              Text(
-                "Welcome back you’ve been missed!",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
+                SizedBox(height: AppTheme.spacingL),
+                Text(
+                  "Welcome Back",
+                  style: AppTheme.headingLarge.copyWith(color: AppTheme.primaryBrown),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 30),
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                SizedBox(height: AppTheme.spacingS),
+                Text(
+                  "Welcome back you've been missed!",
+                  style: AppTheme.bodyLarge.copyWith(color: AppTheme.textSecondary),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                obscureText: true,
-                controller: passwordController,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                SizedBox(height: AppTheme.spacingXL),
+                TextField(
+                  controller: emailController,
+                  style: TextStyle(color: Colors.black),
+                  decoration: AppTheme.inputDecoration("Email")
+                      .copyWith(prefixIcon: Icon(Icons.email, color: AppTheme.primaryBrown)),
                 ),
-              ),
-              SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // Forgot Password Functionality
-                  },
-                  child: Text(
-                    "Forgot your password?",
-                    style: TextStyle(color: const Color.fromARGB(255, 131, 57, 0)),
-                  ),
+                SizedBox(height: AppTheme.spacingM),
+                TextField(
+                  obscureText: true,
+                  style: TextStyle(color: Colors.black),
+                  controller: passwordController,
+                  decoration: AppTheme.inputDecoration("Password")
+                      .copyWith(prefixIcon: Icon(Icons.lock, color: AppTheme.primaryBrown)),
                 ),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: login,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 131, 57, 0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding:
-                  EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                ),
-                child: Text(
-                  "Sign in",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) =>  SignupScreen())
-                  );
-                },
-                child: Text(
-                  "Create new account",
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              SizedBox(height: 30),
-              Text(
-                "Or continue with",
-                style: TextStyle(color: Colors.white),
-              ),
-              SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
+                SizedBox(height: AppTheme.spacingS),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
                     onPressed: () {
-                      // Google Sign-In
+                      // Forgot Password Functionality
                     },
-                    icon: Icon(Icons.g_mobiledata),
+                    child: Text(
+                      "Forgot your password?",
+                      style: AppTheme.bodyMedium.copyWith(color: AppTheme.primaryBrown),
+                    ),
                   ),
-                  SizedBox(width: 10),
-                  IconButton(
-                    onPressed: () {
-                      // Facebook Sign-In
-                    },
-                    icon: Icon(Icons.facebook),
+                ),
+                SizedBox(height: AppTheme.spacingM),
+                ElevatedButton(
+                  onPressed: login,
+                  style: AppTheme.primaryButton,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppTheme.spacingS),
+                    child: Text("Sign In", style: AppTheme.bodyLarge.copyWith(color: Colors.white)),
                   ),
-                  SizedBox(width: 10),
-                  IconButton(
-                    onPressed: () {
-                      // Apple Sign-In
-                    },
-                    icon: Icon(Icons.apple),
-                  ),
-                ],
-              ),
-            ],
+                ),
+                SizedBox(height: AppTheme.spacingM),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account? ",
+                      style: AppTheme.bodyMedium,
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SignupScreen()),
+                        );
+                      },
+                      child: Text(
+                        "Sign Up",
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.primaryBrown,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

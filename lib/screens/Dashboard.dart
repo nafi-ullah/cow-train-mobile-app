@@ -1,12 +1,18 @@
 import 'package:cowtrain/constants.dart';
 import 'package:cowtrain/provider/user_provider.dart';
+import 'package:cowtrain/screens/UserProfile.dart';
 import 'package:cowtrain/screens/auth/loginscreen.dart';
 import 'package:cowtrain/screens/componentscreen/AddCow.dart';
 import 'package:cowtrain/screens/componentscreen/Cowinfo.dart';
+import 'package:cowtrain/constants/theme_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../services/auth_services.dart';
+
 class DashboardScreen extends StatefulWidget {
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -16,31 +22,75 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<dynamic> cattleData = [];
   bool isLoading = true;
   bool hasError = false;
+  int credit = 0;
+
+
 
   @override
   void initState() {
     super.initState();
-    // Fetch the data after the widget is built
-    Future.microtask(() => fetchCattleData());
+
+    // Delay to ensure context is available
+    Future.delayed(Duration.zero, () {
+      // final user = Provider.of<UserProvider>(context, listen: false).user;
+      // setState(() {
+      //   credit = user.credit ?? 0;
+      // });
+      fetchUserData();
+      fetchCattleData();
+    });
   }
 
   void _logout(BuildContext context) {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-          (route) => false,
-    );
+    final authService = AuthServices();
+    authService.logout(context);
+  }
+
+  Future<void> fetchUserData() async {
+    try {
+      final user = Provider.of<UserProvider>(context, listen: false).user;
+      final url = Uri.parse('$uri/users');
+      final response = await http.get(url);
+      print(response.statusCode);
+      if (response.statusCode == 200) {
+        List<dynamic> users = json.decode(response.body);
+
+        // Find the current user by matching userId
+        final currentUser = users.firstWhere((u) => u['userid'] == user.userid, orElse: () => null);
+
+        if (currentUser != null) {
+          // Update the user's credit in the provider
+          final newCredit = currentUser['credit'];
+          Provider.of<UserProvider>(context, listen: false).updateCredit(newCredit);
+          setState(() {
+            credit = newCredit;
+          });
+        } else {
+          setState(() {
+            hasError = true;
+            isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          hasError = true;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        hasError = true;
+        isLoading = false;
+      });
+      print('Error fetching user data: $e');
+    }
   }
 
   Future<void> fetchCattleData() async {
     try {
-      // Access the provider using listen: false
       final user = Provider.of<UserProvider>(context, listen: false).user;
       String userid = user.userid;
       final url = Uri.parse('$uri/cattles/$userid/');
-      print("In dashboard hitting to ====>");
-      print(url);
-
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -63,116 +113,362 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+
+  Future<void> fetchall() async {
+    try {
+      fetchUserData();
+      fetchCattleData();
+    } catch (e) {
+      setState(() {
+        hasError = true;
+        isLoading = false;
+      });
+      print('Error fetching data: $e');
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
-      
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                // Cover Image
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage("assets/images/landingscreen.png"),
-                      //fit: BoxFit.cover,
-                    ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: Row(
+    children: [
+      Image.asset(
+        'assets/images/ipinfralogo.png',
+        height: 30, // Adjust size as needed
+      ),
+      SizedBox(width: 8), // Adds some spacing between the logo and text
+      Text(
+        'Dashboard',
+        style: AppTheme.headingLarge,
+      ),
+    ],
+  ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add_circle_outline, color: AppTheme.primaryBrown, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AddCattleFormScreen()),
+              );
+            },
+          ),
+          PopupMenuButton<String>(
+            color: AppTheme.lightBrown,
+            icon: Icon(Icons.more_vert, color: AppTheme.primaryBrown),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _logout(context);
+              }else if (value == 'profile'){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(),
                   ),
+                );
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.account_circle_outlined, color: AppTheme.textSecondary),
+                    SizedBox(width: AppTheme.spacingM),
+                    Text('Profile', style: AppTheme.bodyMedium),
+                  ],
                 ),
-                // Cow Information Section
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
-                  ),
-                  child: isLoading
-                      ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                      : hasError
-                      ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Text(
-                        "No data available",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+              ),
+              PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: AppTheme.textSecondary),
+                    SizedBox(width: AppTheme.spacingM),
+                    Text('Logout', style: AppTheme.bodyMedium),
+                  ],
+                ),
+              ),
+
+            ],
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: fetchall,
+        color: AppTheme.primaryBrown,
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SingleChildScrollView(
+
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(AppTheme.spacingL),
+                      child: Container(
+                        padding: EdgeInsets.all(AppTheme.spacingL),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.primaryBrown, AppTheme.lightBrown],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryBrown.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Total Cattle',
+                              style: AppTheme.bodyLarge.copyWith(color: Colors.white.withOpacity(0.9)),
+                            ),
+                            SizedBox(height: AppTheme.spacingS),
+                            Text(
+                              '${cattleData.length}',
+                              style: AppTheme.headingLarge.copyWith(
+                                color: Colors.white,
+                                fontSize: 36,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  )
-                      : ListView.builder(
-                    physics: NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: cattleData.length,
-                    itemBuilder: (context, index) {
-                      final cow = cattleData[index];
-                      final weightPredictions = cow['weight_predictions'];
-                      final hasWeightPredictions = weightPredictions.isNotEmpty;
-                      final weightPrediction = hasWeightPredictions ? weightPredictions[0] : null;
+                    Padding(
+                      padding: EdgeInsets.all(AppTheme.spacingL),
+                      child: Container(
+                        padding: EdgeInsets.all(AppTheme.spacingL),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.primaryBrown, AppTheme.lightBrown],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryBrown.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Your Credit',
+                              style: AppTheme.bodyLarge.copyWith(color: Colors.white.withOpacity(0.9)),
+                            ),
+                            SizedBox(height: AppTheme.spacingS),
+                            Text(
+                              '${credit ?? 0}',
+                              style: AppTheme.headingLarge.copyWith(
+                                color: Colors.white,
+                                fontSize: 36,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingL),
+                child: Text(
+                  'Your Cattle',
+                  style: AppTheme.headingMedium,
+                ),
+              ),
+              if (isLoading)
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(AppTheme.spacingXL),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBrown),
+                    ),
+                  ),
+                )
+              else if (hasError)
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(AppTheme.spacingXL),
+                    child: Column(
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: AppTheme.textSecondary),
+                        SizedBox(height: AppTheme.spacingM),
+                        Text(
+                          "No cattle data available",
+                          style: AppTheme.bodyLarge.copyWith(color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ListView.builder(
+                  physics: NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: cattleData.length,
+                  itemBuilder: (context, index) {
+                    final cow = cattleData[index];
+                    final cowId = cow['cattle_id'];
+                    final weightPredictions = cow['weight_predictions'];
+                    final hasWeightPredictions = weightPredictions.isNotEmpty;
+                    final weightPrediction = hasWeightPredictions ? weightPredictions[0] : null;
 
-                      return GestureDetector(
-                        onTap: () {
-                          // Navigate to CowInfoScreen with cow data
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CowInfoScreen(cowData: cow),
-                            ),
+                    return Dismissible(
+                      key: ValueKey(cowId),
+                      direction: DismissDirection.endToStart,
+                      confirmDismiss: (direction) async {
+                        return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text("Confirm Deletion"),
+                            content: Text("Are you sure you want to delete '${cow['name']}'?"),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: Text("Cancel"),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: Text("Delete", style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      onDismissed: (direction) async {
+                        final url = Uri.parse("http://13.233.130.128:8000/cattle/$cowId");
+
+                        try {
+                          final response = await http.delete(url);
+                          if (response.statusCode == 200) {
+                            setState(() {
+                              cattleData.removeAt(index);
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Deleted '${cow['name']}'")),
+                            );
+                          } else {
+                            throw Exception("Failed to delete");
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Error deleting '${cow['name']}': $e")),
                           );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            elevation: 5,
+                        }
+                      },
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        color: Colors.red,
+                        // child: Icon(Icons.delete, color: Colors.white),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacingL,
+                          vertical: AppTheme.spacingM,
+                        ),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CowInfoScreen(cowData: cow),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            decoration: AppTheme.cardDecoration,
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Conditionally show ClipRRect if weight_predictions is not empty
                                 if (hasWeightPredictions)
                                   ClipRRect(
-                                    borderRadius:
-                                    BorderRadius.vertical(top: Radius.circular(20)),
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                                     child: Image.network(
                                       weightPrediction['cattle_side_url'],
-                                      height: 150,
+                                      height: 200,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
                                 Padding(
-                                  padding: const EdgeInsets.all(8.0),
+                                  padding: EdgeInsets.all(AppTheme.spacingL),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        cow['name'],
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            cow['name'],
+                                            style: AppTheme.headingMedium,
+                                          ),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: AppTheme.spacingM,
+                                              vertical: AppTheme.spacingS,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.lightGreen.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              'RM${cow['price']}',
+                                              style: AppTheme.bodyMedium.copyWith(
+                                                color: AppTheme.darkGreen,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      SizedBox(height: 5),
-                                      Text("Age: ${cow['age']} years"),
-                                      Text("Color: ${cow['color']}"),
-                                      Text("Price: \$${cow['price']}"),
-                                      // Conditionally show weight and date if weight_predictions is not empty
+                                      SizedBox(height: AppTheme.spacingM),
+                                      Row(
+                                        children: [
+                                          _buildInfoChip(Icons.cake_outlined, "${cow['age']}y"),
+                                          SizedBox(width: AppTheme.spacingS),
+                                          _buildInfoChip(Icons.palette_outlined, cow['color']),
+                                          if (hasWeightPredictions) ...[
+                                            SizedBox(width: AppTheme.spacingM),
+                                            _buildInfoChip(
+                                              Icons.scale_outlined,
+                                              "${weightPrediction['weight'].toStringAsFixed(0)}kg",
+                                            ),
+                                          ],
+                                        ],
+                                      ),
                                       if (hasWeightPredictions) ...[
+                                        SizedBox(height: AppTheme.spacingM),
                                         Text(
-                                            "Weight: ${weightPrediction['weight'].toStringAsFixed(2)} kg"),
-                                        Text("Feeding Date: ${weightPrediction['date']}"),
+                                          "Last Updated: ${weightPrediction['date']}",
+                                          style: AppTheme.bodyMedium.copyWith(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                       ],
                                     ],
                                   ),
@@ -181,43 +477,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-
+                      ),
+                    );
+                  },
                 ),
-              ],
+
+              SizedBox(height: AppTheme.spacingXL),
+            ],
+          ),
+        ),
+      ),
+
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingM,
+        vertical: AppTheme.spacingS,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.lightBrown.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.lightBrown.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: AppTheme.primaryBrown,
+          ),
+          SizedBox(width: AppTheme.spacingXS),
+          Text(
+            label,
+            style: AppTheme.bodyMedium.copyWith(
+              color: AppTheme.primaryBrown,
+              fontSize: 13,
             ),
           ),
-          Positioned(
-          top: 20, // Adjust top position as needed
-          right: 20, // Adjust right position as needed
-          child: PopupMenuButton<String>(
-          icon: Icon(Icons.menu, size: 30, color: Colors.white), // Three-bar icon
-          onSelected: (value) {
-          if (value == 'logout') {
-          _logout(context);
-          }
-          },
-          itemBuilder: (context) => [
-          PopupMenuItem(
-          value: 'logout',
-          child: Text('Logout'),
-          ),
-          ],
-          ),
-          )
         ],
-
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddCattleFormScreen()),
-          );
-        },
-        child: Icon(Icons.add),
       ),
     );
   }
