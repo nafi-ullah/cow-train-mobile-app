@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:cowtrain/screens/HomeScreen.dart';
 import 'package:cowtrain/constants/theme_constants.dart';
 import 'package:cowtrain/screens/componentscreen/ImageViewer.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 class CowInfoScreen extends StatefulWidget {
   final Map<String, dynamic> cowData;
@@ -14,27 +16,204 @@ class CowInfoScreen extends StatefulWidget {
 }
 
 class _CowInfoScreenState extends State<CowInfoScreen> {
-  // Declare a mutable list to store weight predictions.
+  Map<String, dynamic>? _cowInfo;
   List<dynamic> _weightPredictions = [];
+  bool _isLoading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize _weightPredictions from cowData. If null, it remains an empty list.
-    _weightPredictions = widget.cowData['weight_predictions'] != null
-        ? List.from(widget.cowData['weight_predictions'] as List<dynamic>)
-        : [];
+    // Use the cattle_id from the passed cowData to fetch the detailed info.
+    fetchCowInfo(widget.cowData['cattle_id']);
   }
 
-  // Shows an AlertDialog for delete confirmation and calls delete API if confirmed.
+  void _showEditDialog() {
+    final formKey = GlobalKey<FormState>();
+    Map<String, dynamic> updatedData = Map.from(_cowInfo!);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Edit Cattle Info"),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    initialValue: updatedData['name'],
+                    decoration: InputDecoration(labelText: 'Name'),
+                    onChanged: (val) => updatedData['name'] = val,
+                  ),
+                  TextFormField(
+                    initialValue: updatedData['age'].toString(),
+                    decoration: InputDecoration(labelText: 'Age'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => updatedData['age'] = int.tryParse(val) ?? 0,
+                  ),
+                  TextFormField(
+                    initialValue: updatedData['teeth_number'].toString(),
+                    decoration: InputDecoration(labelText: 'Teeth Number'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => updatedData['teeth_number'] = int.tryParse(val) ?? 0,
+                  ),
+                  TextFormField(
+                    initialValue: updatedData['foods'],
+                    decoration: InputDecoration(labelText: 'Foods'),
+                    onChanged: (val) => updatedData['foods'] = val,
+                  ),
+                  TextFormField(
+                    initialValue: updatedData['color'],
+                    decoration: InputDecoration(labelText: 'Color'),
+                    onChanged: (val) => updatedData['color'] = val,
+                  ),
+                  TextFormField(
+                    initialValue: updatedData['price'].toString(),
+                    decoration: InputDecoration(labelText: 'Price'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => updatedData['price'] = double.tryParse(val) ?? 0,
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: updatedData['gender'] == 'Male' || updatedData['gender'] == 'Female'
+                        ? updatedData['gender']
+                        : null,
+                    decoration: InputDecoration(labelText: 'Gender'),
+                    items: ['Male', 'Female']
+                        .map((gender) => DropdownMenuItem(
+                      value: gender,
+                      child: Text(gender),
+                    ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        updatedData['gender'] = val;
+                      }
+                    },
+                  ),
+
+                  TextFormField(
+                    initialValue: updatedData['description'],
+                    decoration: InputDecoration(labelText: 'Description'),
+                    maxLines: 3,
+                    onChanged: (val) => updatedData['description'] = val,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text("Cancel"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              child: Text("Save"),
+              onPressed: () async {
+                final url = "http://13.233.130.128:8000/cattle-update/${widget.cowData['cattle_id']}";
+                final response = await http.put(
+                  Uri.parse(url),
+                  headers: {"Content-Type": "application/json"},
+                  body: jsonEncode(updatedData),
+                );
+
+                if (response.statusCode == 200) {
+                  Navigator.pop(context);
+                  fetchCowInfo(widget.cowData['cattle_id']); // Refresh UI with new data
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Cattle info updated")),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Update failed")),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _generateAndDownloadReport() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(child: CircularProgressIndicator()),
+    );
+
+    final url = "http://13.233.130.128:8000/generate-cattle-report/${widget.cowData['cattle_id']}";
+    try {
+      final response = await http.get(Uri.parse(url));
+      Navigator.pop(context); // remove loader
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final pdfUrl = data['pdf_url'];
+
+        if (pdfUrl != null) {
+          // You can use url_launcher to open or download
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Report ready. Opening PDF...")),
+          );
+          // Launch URL (requires `url_launcher`)
+          await launchUrl(Uri.parse(pdfUrl), mode: LaunchMode.externalApplication);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("No PDF URL returned.")),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to generate report")),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error occurred while generating report")),
+      );
+    }
+  }
+
+
+
+  Future<void> fetchCowInfo(String cattleId) async {
+    final url = "http://13.233.130.128:8000/cattle/$cattleId/info";
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _cowInfo = data;
+          _weightPredictions = data['weight_predictions'] != null
+              ? List.from(data['weight_predictions'] as List<dynamic>)
+              : [];
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<bool> _confirmDelete(dynamic prediction) async {
     return await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Delete Weight Prediction"),
-          content: const Text(
-              "Do you really want to delete this weight prediction?"),
+          content: const Text("Do you really want to delete this weight prediction?"),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -42,18 +221,14 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
             ),
             TextButton(
               onPressed: () async {
-                // Hit the delete API using the weight prediction id.
-                final url =
-                    "http://13.233.130.128:8000/weight-prediction/${prediction['weight_predict_id']}";
+                final url = "http://13.233.130.128:8000/weight-prediction/${prediction['weight_predict_id']}";
                 final response = await http.delete(Uri.parse(url));
                 if (response.statusCode == 200) {
                   Navigator.of(context).pop(true);
                 } else {
                   Navigator.of(context).pop(false);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                        Text("Failed to delete the prediction.")),
+                    const SnackBar(content: Text("Failed to delete the prediction.")),
                   );
                 }
               },
@@ -62,30 +237,21 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
           ],
         );
       },
-    ) ??
-        false;
+    ) ?? false;
   }
 
   Widget _buildDetailRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: AppTheme.primaryBrown,
-        ),
+        Icon(icon, size: 20, color: AppTheme.primaryBrown),
         SizedBox(width: AppTheme.spacingM),
         Text(
           "$label: ",
-          style: AppTheme.bodyMedium.copyWith(
-            color: AppTheme.textSecondary,
-          ),
+          style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
         ),
         Text(
           value,
-          style: AppTheme.bodyLarge.copyWith(
-            color: AppTheme.textPrimary,
-          ),
+          style: AppTheme.bodyLarge.copyWith(color: AppTheme.textPrimary),
         ),
       ],
     );
@@ -93,16 +259,16 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
 
   Widget _buildDetailDescription(IconData icon, String label, String value) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start, // Aligns text to the top
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, color: AppTheme.primaryBrown),
         SizedBox(width: AppTheme.spacingM),
         Expanded(
           child: Text(
-            "$value",
+            value,
             style: AppTheme.bodyLarge,
-            softWrap: true, // Ensures text wraps
-            overflow: TextOverflow.visible, // Prevents text clipping
+            softWrap: true,
+            overflow: TextOverflow.visible,
           ),
         ),
       ],
@@ -111,13 +277,43 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor, // Set the default background color here
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: AppTheme.primaryBrown),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+
+    if (_hasError || _cowInfo == null) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: AppTheme.primaryBrown),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(child: Text("Error loading cow information.")),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          widget.cowData['name'],
+          _cowInfo!['name'],
           style: AppTheme.headingLarge,
         ),
         leading: IconButton(
@@ -139,29 +335,44 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Cattle Details",
-                        style: AppTheme.headingMedium,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Cattle Details", style: AppTheme.headingMedium),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, color: AppTheme.primaryBrown),
+                                onPressed: () => _showEditDialog(),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.download, color: AppTheme.primaryBrown),
+                                onPressed: () => _generateAndDownloadReport(),
+                              ),
+                            ],
+                          )
+                        ],
                       ),
+
                       SizedBox(height: AppTheme.spacingM),
-                      _buildDetailRow(Icons.pets_outlined, "Name", widget.cowData['name']),
+                      _buildDetailRow(Icons.pets_outlined, "Name", _cowInfo!['name']),
                       SizedBox(height: AppTheme.spacingS),
                       _buildDetailRow(
                         Icons.calendar_today_outlined,
                         "Age",
-                        "${widget.cowData['age']} years - ${widget.cowData['gender']}",
+                        "${_cowInfo!['age']} years - ${_cowInfo!['gender']}",
                       ),
                       SizedBox(height: AppTheme.spacingS),
-                      _buildDetailRow(Icons.palette_outlined, "Color", widget.cowData['color']),
+                      _buildDetailRow(Icons.palette_outlined, "Color", _cowInfo!['color']),
                       SizedBox(height: AppTheme.spacingS),
-                      _buildDetailRow(Icons.attach_money_outlined, "Price", "RM${widget.cowData['price']}"),
+                      _buildDetailRow(Icons.attach_money_outlined, "Price", "RM${_cowInfo!['price']}"),
                       SizedBox(height: AppTheme.spacingS),
-                      if (widget.cowData['description'] != null &&
-                          widget.cowData['description'].toString().isNotEmpty)
+                      if (_cowInfo!['description'] != null &&
+                          _cowInfo!['description'].toString().isNotEmpty)
                         _buildDetailDescription(
                           Icons.description,
                           "",
-                          widget.cowData['description'],
+                          _cowInfo!['description'],
                         ),
                     ],
                   ),
@@ -177,7 +388,7 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => HomeScreen(cowData: widget.cowData),
+                        builder: (context) => HomeScreen(cowData: _cowInfo!),
                       ),
                     );
                   },
@@ -205,17 +416,11 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
                     padding: EdgeInsets.all(AppTheme.spacingXL),
                     child: Column(
                       children: [
-                        Icon(
-                          Icons.scale_outlined,
-                          size: 48,
-                          color: AppTheme.textSecondary,
-                        ),
+                        Icon(Icons.scale_outlined, size: 48, color: AppTheme.textSecondary),
                         SizedBox(height: AppTheme.spacingM),
                         Text(
                           "No weight measurements yet",
-                          style: AppTheme.bodyLarge.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
+                          style: AppTheme.bodyLarge.copyWith(color: AppTheme.textSecondary),
                         ),
                       ],
                     ),
@@ -233,11 +438,9 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
                       child: const Icon(Icons.delete, color: Colors.white),
                     ),
                     confirmDismiss: (direction) async {
-                      // Ask user confirmation and perform delete API call.
                       return await _confirmDelete(prediction);
                     },
                     onDismissed: (direction) {
-                      // Remove the prediction from the list and re-render.
                       setState(() {
                         _weightPredictions.remove(prediction);
                       });
@@ -254,9 +457,7 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
                               padding: EdgeInsets.all(AppTheme.spacingM),
                               decoration: BoxDecoration(
                                 color: AppTheme.lightBrown.withOpacity(0.1),
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(12),
-                                ),
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                               ),
                               child: Column(
                                 children: [
@@ -265,15 +466,11 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
                                     children: [
                                       Text(
                                         "${prediction['weight'].toStringAsFixed(2)} kg",
-                                        style: AppTheme.headingMedium.copyWith(
-                                          color: AppTheme.primaryBrown,
-                                        ),
+                                        style: AppTheme.headingMedium.copyWith(color: AppTheme.primaryBrown),
                                       ),
                                       Text(
                                         prediction['date'],
-                                        style: AppTheme.bodyMedium.copyWith(
-                                          color: AppTheme.textSecondary,
-                                        ),
+                                        style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
                                       ),
                                     ],
                                   ),
@@ -292,9 +489,7 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
                                       children: [
                                         Text(
                                           "Side View",
-                                          style: AppTheme.bodyMedium.copyWith(
-                                            color: AppTheme.textSecondary,
-                                          ),
+                                          style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
                                         ),
                                         SizedBox(height: AppTheme.spacingS),
                                         ImageViewer(imageUrl: prediction['cattle_side_url']),
@@ -308,9 +503,7 @@ class _CowInfoScreenState extends State<CowInfoScreen> {
                                       children: [
                                         Text(
                                           "Rear View",
-                                          style: AppTheme.bodyMedium.copyWith(
-                                            color: AppTheme.textSecondary,
-                                          ),
+                                          style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
                                         ),
                                         SizedBox(height: AppTheme.spacingS),
                                         ImageViewer(imageUrl: prediction['cattle_rear_url']),
