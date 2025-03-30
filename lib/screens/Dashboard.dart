@@ -1,5 +1,6 @@
 import 'package:cowtrain/constants.dart';
 import 'package:cowtrain/provider/user_provider.dart';
+import 'package:cowtrain/screens/UserProfile.dart';
 import 'package:cowtrain/screens/auth/loginscreen.dart';
 import 'package:cowtrain/screens/componentscreen/AddCow.dart';
 import 'package:cowtrain/screens/componentscreen/Cowinfo.dart';
@@ -165,9 +166,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onSelected: (value) {
               if (value == 'logout') {
                 _logout(context);
+              }else if (value == 'profile'){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(),
+                  ),
+                );
               }
             },
             itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.account_circle_outlined, color: AppTheme.textSecondary),
+                    SizedBox(width: AppTheme.spacingM),
+                    Text('Profile', style: AppTheme.bodyMedium),
+                  ],
+                ),
+              ),
               PopupMenuItem(
                 value: 'logout',
                 child: Row(
@@ -178,6 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
+
             ],
           ),
         ],

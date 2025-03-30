@@ -36,6 +36,12 @@ class AppTheme {
         color: textPrimary,
       );
 
+  static TextStyle get modalHeading => GoogleFonts.poppins(
+    fontSize: 20,
+    fontWeight: FontWeight.w400,
+    color: primaryBrown,
+  );
+
   // Button Styles
   static ButtonStyle get primaryButton => ElevatedButton.styleFrom(
         backgroundColor: primaryBrown,
