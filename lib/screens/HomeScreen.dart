@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cowtrain/constants.dart';
+import 'package:cowtrain/features/sticker_adjustment_camera.dart';
 import 'package:cowtrain/provider/user_provider.dart';
 import 'package:cowtrain/screens/ResultScreen.dart';
 import 'package:cowtrain/constants/theme_constants.dart';
@@ -31,7 +32,10 @@ class _HomeScreenState extends State<HomeScreen> {
   late String cattleId;
   late String gender;
   final TextEditingController _descriptionController = TextEditingController();
-
+  XFile? _capturedFile;
+  int? _imageWidth;
+  int? _imageHeight;
+  double? stickerSize;
   final picker = ImagePicker();
 
   @override
@@ -40,6 +44,23 @@ class _HomeScreenState extends State<HomeScreen> {
     // Initialize cattleId and gender from widget.cowData
     cattleId = widget.cowData['cattle_id'];
     gender = widget.cowData['gender'] == "Male" ? "M" : "F";
+  }
+
+  void _openCamera() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CameraCaptureScreen()),
+    );
+
+    if (result is Map && result['file'] is File ) {
+      setState(() {
+        sideImageFile =  result['file'];//File(result['file'].path);
+        // _capturedFile = result['file'];
+        _imageWidth = result['width'];
+        _imageHeight = result['height'];
+        stickerSize = result['sticker'];
+      });
+    }
   }
 
   Future<void> _showImageSourceDialog({required bool isSideImage}) async {
@@ -100,7 +121,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _pickImage(ImageSource.gallery, isSideImage: isSideImage);
+                  if (isSideImage == true){
+                    _openCamera();
+                  }else{
+                    _pickImage(ImageSource.gallery, isSideImage: isSideImage);
+                  }
+
                 },
               ),
             ],
