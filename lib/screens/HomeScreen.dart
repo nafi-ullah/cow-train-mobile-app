@@ -37,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int? _imageHeight;
   double? stickerSize;
   final picker = ImagePicker();
+  String opencameralog = '';
+  String rearimagelog = '';
 
   @override
   void initState() {
@@ -51,6 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (_) => CameraCaptureScreen()),
     );
+    setState(() {
+      opencameralog = 'file type: ${result['file'].runtimeType} w ${result['width']} h ${ result['height']}';
+    });
 
     if (result is Map && result['file'] is File ) {
       setState(() {
@@ -60,6 +65,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _imageHeight = result['height'];
         stickerSize = result['sticker'];
       });
+      _uploadImage(
+         sideImageFile! ,
+        isSideImage: true,
+      );
     }
   }
 
@@ -116,13 +125,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 title: Text(
-                  'Choose from Gallery',
+                   'Choose from Gallery',
                   style: AppTheme.bodyLarge,
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   if (isSideImage == true){
-                    _openCamera();
+                    // _pickImage(ImageSource.gallery, isSideImage: isSideImage);
+                     _openCamera();
                   }else{
                     _pickImage(ImageSource.gallery, isSideImage: isSideImage);
                   }
@@ -150,6 +160,10 @@ class _HomeScreenState extends State<HomeScreen> {
           } else {
             rearImageFile = File(pickedFile.path);
           }
+        });
+
+        setState(() {
+          rearimagelog = 'rear type: ${rearImageFile.runtimeType} ';
         });
         _uploadImage(
           isSideImage ? sideImageFile! : rearImageFile!,
@@ -226,15 +240,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final remainingCredits = responseData['remaining_credits'] as int;
           final predictedWeightValue = responseData['predicted_weight'];
-
+          print(remainingCredits);
+          print(predictedWeightValue);
           // Update UserProvider credit
 
           userProvider.updateCredit(remainingCredits);
 
 
+
           setState(() {
             predictedWeight = predictedWeightValue;
           });
+
+
 
           // Navigate only if `predictedWeight` is valid
           if (predictedWeight != null) {
@@ -250,15 +268,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             );
+          }else{
+            if(remainingCredits == 0){
+              userProvider.updateCredit(0);
+              _showErrorDialog(context, "Please mail to sales@ipinfra.com.my for get credit.");
+            }
+
           }
+
+
+
         } else {
           // Handle other status codes
-          if (responseData.containsKey('detail') && responseData['detail'].toString().contains('402')) {
-            userProvider.updateCredit(0);
-            _showErrorDialog(context, "Please mail to sales@ipinfra.com.my for get credit.");
-          } else {
-            _showErrorDialog(context, "Something went wrong, please try again later.");
-          }
+
+          _showErrorNoticeDialog(context, "Something went wrong, please try again later. Or check your internet connectivity. ");
+
           print('Failed to submit images: ${response.statusCode}');
         }
 
@@ -314,6 +338,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       "Take Photos",
                       style: AppTheme.headingMedium,
                     ),
+                    Text(
+                        opencameralog,
+                      style: AppTheme.bodyMedium,
+
+                    ),
+                    Text(
+                      rearimagelog,
+                      style: AppTheme.bodyMedium,
+
+                    ),
                     SizedBox(height: AppTheme.spacingS),
                     Text(
                       "Please take clear photos from both side and rear view for accurate weight prediction.",
@@ -360,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(height: AppTheme.spacingM),
                           ElevatedButton.icon(
                             style: AppTheme.primaryButton,
-                            onPressed: () => _showImageSourceDialog(isSideImage: true),
+                            onPressed: () => _openCamera(), //_showImageSourceDialog(isSideImage: true),
                             icon: Icon(Icons.add_a_photo_outlined),
                             label: Text(
                               sideImageUrl == null ? "Take Side Photo" : "Change Photo",
@@ -609,6 +643,38 @@ void _showErrorDialog(BuildContext context, String message) {
             child: Text("Send Request"),
           ),
               // Do not show button if input is empty
+
+          // Close Button
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text("Cancel"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+void _showErrorNoticeDialog(BuildContext context, String message) {
+
+
+  // Enable button only when the input field is not empt
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        title: Text("Something Wrong Happened"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message),
+            SizedBox(height: 16),
+
+
+          ],
+        ),
+        actions: [
 
           // Close Button
           TextButton(

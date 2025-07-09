@@ -54,7 +54,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
     _controller = CameraController(
       backCam,
-      ResolutionPreset.max,
+      ResolutionPreset.high, // ekhane 1920 h, 1080 h krsi, bt calculatuon sob agyr 3072 r 4096 er moto
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
 
