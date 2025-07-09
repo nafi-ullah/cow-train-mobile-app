@@ -293,6 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _submitImages(BuildContext context) async {
     setState(() {
+      predictedWeight = null;
       isLoading = true;
     });
     if (sideImageUrl != null && rearImageUrl != null) {
@@ -322,6 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final remainingCredits = responseData['remaining_credits'] as int;
           final predictedWeightValue = responseData['predicted_weight'];
+          final errorNoti = responseData['error'];
           print(remainingCredits);
           print(predictedWeightValue);
           // Update UserProvider credit
@@ -331,8 +333,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
           setState(() {
-            predictedWeight = predictedWeightValue;
+            predictedWeight =  predictedWeightValue?.abs() ?? null;
           });
+
+
+          // if(errorNoti){
+          //   _showErrorNoticeDialog(context, '${errorNoti} ');
+          // }
 
 
 
@@ -354,6 +361,8 @@ class _HomeScreenState extends State<HomeScreen> {
             if(remainingCredits == 0){
               userProvider.updateCredit(0);
               _showErrorDialog(context, "Please mail to sales@ipinfra.com.my for get credit.");
+            }else{
+              _showErrorNoticeDialog(context, '${errorNoti} ');
             }
 
           }
@@ -728,7 +737,8 @@ void _showErrorDialog(BuildContext context, String message) {
 
           // Close Button
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => {
+              Navigator.of(ctx).pop()},
             child: Text("Cancel"),
           ),
         ],
