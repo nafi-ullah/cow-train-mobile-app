@@ -420,16 +420,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       "Take Photos",
                       style: AppTheme.headingMedium,
                     ),
-                    Text(
-                        opencameralog,
-                      style: AppTheme.bodyMedium,
-
-                    ),
-                    Text(
-                      rearimagelog,
-                      style: AppTheme.bodyMedium,
-
-                    ),
+                    // Text(
+                    //     opencameralog,
+                    //   style: AppTheme.bodyMedium,
+                    //
+                    // ),
+                    // Text(
+                    //   rearimagelog,
+                    //   style: AppTheme.bodyMedium,
+                    //
+                    // ),
                     SizedBox(height: AppTheme.spacingS),
                     Text(
                       "Please take clear photos from both side and rear view for accurate weight prediction.",
