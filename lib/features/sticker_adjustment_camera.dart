@@ -54,7 +54,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
     _controller = CameraController(
       backCam,
-      ResolutionPreset.high, // ekhane 1920 h, 1080 h krsi, bt calculatuon sob agyr 3072 r 4096 er moto
+      ResolutionPreset.veryHigh, // ekhane 1920 h, 1080 h krsi, bt calculatuon sob agyr 3072 r 4096 er moto
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
 
@@ -104,8 +104,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final canvas = Canvas(recorder);
 
     double scaledStickerSize = stickerSize;
-    if (background.width.toDouble() != 3072.0 ||  background.height.toDouble() != 4096.0) {
-      double k = background.width.toDouble() / 3072.0;
+    if (background.width.toDouble() != 1080.0 ||  background.height.toDouble() != 1920.0) {
+      double k = background.width.toDouble() / 1080.0;
       scaledStickerSize = stickerSize * k;
     }
 
@@ -158,8 +158,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final cameraHeightVal = _controller.value.previewSize?.height ?? 0.0;
 
     double scaledStickerSize = baseStickerSizePx;
-    if (cameraWidth != 3072.0 || cameraHeightVal != 4096.0) {
-      double k = cameraWidth / 3072.0;
+    if (cameraWidth != 1080.0 || cameraHeightVal != 1920.0) {
+      double k = cameraWidth / 1080.0;
       scaledStickerSize = baseStickerSizePx * k;
     }
 
@@ -172,7 +172,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         cameraAngle = pitching ;
         _isStickerAvailable = true;
         stickerSize =  baseStickerSizePx;
-        logicalStickerSize = logicalStickerSizeCal;
+        logicalStickerSize = logicalStickerSizeCal / 2.5;
         finlaDistance = distanceInch;
         pitchingPosGl = pitchingPos;
         originalAngleGl = originalAngle;

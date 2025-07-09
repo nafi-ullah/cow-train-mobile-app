@@ -10,6 +10,8 @@ import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 final cloudinary = CloudinaryPublic('dhqvosimu', 'jhc18w5a', cache: false);
 
 class HomeScreen extends StatefulWidget {
@@ -186,8 +188,86 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _uploadImage(File image, {required bool isSideImage}) async {
     try {
+      // Read the original file as bytes
+      final originalBytes = await image.readAsBytes();
+
+      // Decode the image
+      final decodedImage = img.decodeImage(originalBytes);
+      if (decodedImage == null) {
+        print('Failed to decode image');
+        return;
+      }
+      img.Image processedImage = decodedImage;
+
+
+      if (isSideImage) {
+        processedImage = img.copyRotate(processedImage,  angle: -90);
+      }else {
+        // 📏 Resize to HD if too big
+        final w = processedImage.width;
+        final h = processedImage.height;
+
+        const maxLandscapeW = 1920;
+        const maxLandscapeH = 1440;
+        const maxPortraitW = 1440;
+        const maxPortraitH = 1920;
+
+        // Determine if resizing is needed
+        if (w > maxLandscapeW || h > maxPortraitH) {
+          double aspectRatio = w / h;
+
+          int targetW, targetH;
+
+          if (aspectRatio >= 1) {
+            // landscape
+            targetW = maxLandscapeW;
+            targetH = (maxLandscapeW / aspectRatio).round();
+
+            if (targetH > maxLandscapeH) {
+              targetH = maxLandscapeH;
+              targetW = (maxLandscapeH * aspectRatio).round();
+            }
+          } else {
+            // portrait
+            targetH = maxPortraitH;
+            targetW = (maxPortraitH * aspectRatio).round();
+
+            if (targetW > maxPortraitW) {
+              targetW = maxPortraitW;
+              targetH = (maxPortraitW / aspectRatio).round();
+            }
+          }
+
+          print('Resizing from ${w}x$h → ${targetW}x$targetH');
+
+          processedImage = img.copyResize(
+            processedImage,
+            width: targetW,
+            height: targetH,
+            interpolation: img.Interpolation.average,
+          );
+        } else {
+          print('No resizing needed. Original size: ${w}x$h');
+        }
+      }
+
+
+      // Encode with 80% quality
+      final compressedBytes = img.encodeJpg(processedImage, quality: 80);
+
+
+
+      // Save compressed bytes to a temporary file
+      final tempDir = await getTemporaryDirectory();
+      final compressedFile = File('${tempDir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await compressedFile.writeAsBytes(compressedBytes);
+
+      // Upload the compressed file
       CloudinaryResponse response = await cloudinary.uploadFile(
-        CloudinaryFile.fromFile(image.path, resourceType: CloudinaryResourceType.Image),
+        CloudinaryFile.fromFile(
+          compressedFile.path,
+          resourceType: CloudinaryResourceType.Image,
+        ),
         onProgress: (count, total) {
           setState(() {
             _uploadingPercentage = (count / total) * 100;
@@ -201,11 +281,13 @@ class _HomeScreenState extends State<HomeScreen> {
         } else {
           rearImageUrl = response.secureUrl;
         }
-        _uploadingPercentage = 0.0; // Reset the upload percentage after the upload is complete
+        _uploadingPercentage = 0.0;
       });
     } on CloudinaryException catch (e) {
       print(e.message);
       print(e.request);
+    } catch (e) {
+      print(e);
     }
   }
 
