@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 final cloudinary = CloudinaryPublic('dhqvosimu', 'jhc18w5a', cache: false);
 
 class HomeScreen extends StatefulWidget {
@@ -74,71 +75,112 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _pickImageFromGallery() async {
+    try {
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          sideImageFile = File(pickedFile.path);
+        });
+
+        _uploadImage(
+          sideImageFile!,
+          isSideImage: true,
+        );
+      }
+    } catch (e) {
+      print('Error picking image from gallery: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error picking image from gallery. Please try again.',
+            style: AppTheme.bodyMedium.copyWith(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _showImageSourceDialog({required bool isSideImage}) async {
-    await showDialog(
+    print('_showImageSourceDialog called with isSideImage: $isSideImage'); // Debug print
+    
+    return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppTheme.backgroundColor,
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           title: Text(
             'Select Image Source',
-            style: AppTheme.headingMedium,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: Container(
-                  padding: EdgeInsets.all(AppTheme.spacingS),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.lightBrown.withOpacity(0.1),
+                    color: Colors.brown.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.camera_alt_outlined,
-                    color: AppTheme.primaryBrown,
+                    color: Colors.brown,
                   ),
                 ),
                 title: Text(
                   'Take Photo',
-                  style: AppTheme.bodyLarge,
+                  style: TextStyle(fontSize: 16, color: Colors.black87),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera, isSideImage: isSideImage);
+                  print('Take Photo tapped'); // Debug print
+                  Navigator.of(context).pop();
+                  if (isSideImage) {
+                    _openCamera();
+                  } else {
+                    _pickImageFromCamera(isSideImage: isSideImage);
+                  }
                 },
               ),
               Divider(
-                color: AppTheme.lightBrown.withOpacity(0.3),
+                color: Colors.brown.withOpacity(0.3),
               ),
               ListTile(
                 leading: Container(
-                  padding: EdgeInsets.all(AppTheme.spacingS),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.lightBrown.withOpacity(0.1),
+                    color: Colors.brown.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.photo_library_outlined,
-                    color: AppTheme.primaryBrown,
+                    color: Colors.brown,
                   ),
                 ),
                 title: Text(
-                   'Choose from Gallery',
-                  style: AppTheme.bodyLarge,
+                  'Choose from Gallery',
+                  style: TextStyle(fontSize: 16, color: Colors.black87),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
-                  if (isSideImage == true){
-                    // _pickImage(ImageSource.gallery, isSideImage: isSideImage);
-                     _openCamera();
-                  }else{
+                  print('Choose from Gallery tapped'); // Debug print
+                  Navigator.of(context).pop();
+                  if (isSideImage) {
+                    _pickImageFromGallery();
+                  } else {
                     _pickImage(ImageSource.gallery, isSideImage: isSideImage);
                   }
-
                 },
               ),
             ],
@@ -146,6 +188,169 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  Future<bool> _requestCameraPermission() async {
+    final status = await Permission.camera.request();
+    return status == PermissionStatus.granted;
+  }
+
+  Future<void> _pickImageFromCamera({required bool isSideImage}) async {
+    try {
+      // Check and request camera permission
+      bool hasPermission = await _requestCameraPermission();
+      if (!hasPermission) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Camera permission is required to take photos.',
+              style: AppTheme.bodyMedium.copyWith(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                SizedBox(width: 10),
+                Text('Opening camera...', style: AppTheme.bodyMedium.copyWith(color: Colors.white)),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+
+      // Hide loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
+
+      if (pickedFile != null) {
+        final imageFile = File(pickedFile.path);
+        
+        // Verify the file exists and is readable
+        if (await imageFile.exists()) {
+          final fileSize = await imageFile.length();
+          print('Camera image captured: ${pickedFile.path}, Size: $fileSize bytes');
+          
+          // Additional validation
+          if (fileSize < 1000) {
+            throw Exception('Image file is too small, probably corrupted');
+          }
+          
+          setState(() {
+            if (isSideImage) {
+              sideImageFile = imageFile;
+            } else {
+              rearImageFile = imageFile;
+            }
+          });
+
+          setState(() {
+            rearimagelog = 'rear type: ${rearImageFile.runtimeType} ';
+          });
+          
+          // Show upload progress
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
+                    SizedBox(width: 10),
+                    Text('Uploading image...', style: AppTheme.bodyMedium.copyWith(color: Colors.white)),
+                  ],
+                ),
+                duration: Duration(seconds: 10),
+              ),
+            );
+          }
+          
+          // Upload the image with error handling
+          await _uploadImage(
+            isSideImage ? sideImageFile! : rearImageFile!,
+            isSideImage: isSideImage,
+          );
+          
+          // Hide upload indicator on success
+          if (mounted) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '${isSideImage ? "Side" : "Rear"} image uploaded successfully!',
+                  style: AppTheme.bodyMedium.copyWith(color: Colors.white),
+                ),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } else {
+          throw Exception('Camera image file does not exist or is not accessible');
+        }
+      } else {
+        print('Camera capture was cancelled by user');
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        }
+      }
+    } catch (e) {
+      print('Error capturing image from camera: $e');
+      
+      // Hide any loading indicators
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
+      
+      // Reset the image variables in case of error
+      setState(() {
+        if (isSideImage) {
+          sideImageFile = null;
+          sideImageUrl = null;
+        } else {
+          rearImageFile = null;
+          rearImageUrl = null;
+        }
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error capturing image from camera. Please try again or use gallery.',
+              style: AppTheme.bodyMedium.copyWith(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _pickImage(ImageSource source, {required bool isSideImage}) async {
@@ -156,24 +361,45 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (pickedFile != null) {
-        setState(() {
-          if (isSideImage) {
-            sideImageFile = File(pickedFile.path);
-          } else {
-            rearImageFile = File(pickedFile.path);
-          }
-        });
+        final imageFile = File(pickedFile.path);
+        
+        // Verify the file exists and is readable
+        if (await imageFile.exists()) {
+          setState(() {
+            if (isSideImage) {
+              sideImageFile = imageFile;
+            } else {
+              rearImageFile = imageFile;
+            }
+          });
 
-        setState(() {
-          rearimagelog = 'rear type: ${rearImageFile.runtimeType} ';
-        });
-        _uploadImage(
-          isSideImage ? sideImageFile! : rearImageFile!,
-          isSideImage: isSideImage,
-        );
+          setState(() {
+            rearimagelog = 'rear type: ${rearImageFile.runtimeType} ';
+          });
+          
+          // Upload the image with error handling
+          await _uploadImage(
+            isSideImage ? sideImageFile! : rearImageFile!,
+            isSideImage: isSideImage,
+          );
+        } else {
+          throw Exception('Image file does not exist or is not accessible');
+        }
       }
     } catch (e) {
       print('Error picking image: $e');
+      
+      // Reset the image variables in case of error
+      setState(() {
+        if (isSideImage) {
+          sideImageFile = null;
+          sideImageUrl = null;
+        } else {
+          rearImageFile = null;
+          rearImageUrl = null;
+        }
+      });
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -188,17 +414,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _uploadImage(File image, {required bool isSideImage}) async {
     try {
+      // Verify the file exists and is readable
+      if (!await image.exists()) {
+        throw Exception('Image file does not exist');
+      }
+
       // Read the original file as bytes
       final originalBytes = await image.readAsBytes();
 
       // Decode the image
       final decodedImage = img.decodeImage(originalBytes);
       if (decodedImage == null) {
-        print('Failed to decode image');
-        return;
+        throw Exception('Failed to decode image - invalid image format');
       }
+      
       img.Image processedImage = decodedImage;
-
 
       if (isSideImage) {
         processedImage = img.copyRotate(processedImage,  angle: -90);
@@ -251,11 +481,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
-
       // Encode with 80% quality
       final compressedBytes = img.encodeJpg(processedImage, quality: 80);
-
-
 
       // Save compressed bytes to a temporary file
       final tempDir = await getTemporaryDirectory();
@@ -283,11 +510,44 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         _uploadingPercentage = 0.0;
       });
+      
+      print('Image uploaded successfully: ${response.secureUrl}');
+      
     } on CloudinaryException catch (e) {
-      print(e.message);
-      print(e.request);
+      print('Cloudinary error: ${e.message}');
+      print('Cloudinary request: ${e.request}');
+      
+      // Reset uploading percentage
+      setState(() {
+        _uploadingPercentage = 0.0;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to upload image to cloud. Please try again.',
+            style: AppTheme.bodyMedium.copyWith(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
     } catch (e) {
-      print(e);
+      print('Upload error: $e');
+      
+      // Reset uploading percentage
+      setState(() {
+        _uploadingPercentage = 0.0;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error processing image. Please try again.',
+            style: AppTheme.bodyMedium.copyWith(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -483,15 +743,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: AppTheme.textSecondary,
                             ),
                           SizedBox(height: AppTheme.spacingM),
-                          ElevatedButton.icon(
-                            style: AppTheme.primaryButton,
-                            onPressed: () => _openCamera(), //_showImageSourceDialog(isSideImage: true),
-                            icon: Icon(Icons.add_a_photo_outlined),
-                            label: Text(
-                              sideImageUrl == null ? "Take Side Photo" : "Change Photo",
-                              style: AppTheme.bodyLarge.copyWith(color: Colors.white),
+                            ElevatedButton.icon(
+                              style: AppTheme.primaryButton,
+                              onPressed: () => _showImageSourceDialog(isSideImage: true),
+                              icon: Icon(Icons.add_a_photo_outlined),
+                              label: Text(
+                                sideImageUrl == null ? "Take Side Photo" : "Change Photo",
+                                style: AppTheme.bodyLarge.copyWith(color: Colors.white),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
