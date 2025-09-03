@@ -58,7 +58,6 @@ The system also includes a **weight prediction mechanism**: when users capture s
 ## 📱 Screenshots
 
 ### 📌 Demo Preview
-![App Demo](assets/note/appdemo1.png)
 
 ---
 
@@ -67,12 +66,16 @@ The system also includes a **weight prediction mechanism**: when users capture s
 - **Onboarding / Intro Page** – “Discover Cow Weight Predictions”  
 - **Sign Up Page** – Create account with full name, email, password, farm name, location, phone number  
 
+![App Demo](assets/note/appdemo1.png)
+
 ---
 
 ### 📱 Set 2
 - **Login Page** – Enter email & password, option for “Forgot Password”  
 - **Dashboard Page** – Shows cattle count, credits, and cattle list (with image, weight, price, color, age)  
 - **Sign Up Page (alternate view)** – Same create account form as in Set 1  
+
+![App Demo](assets/note/appdemo2.png)
 
 ---
 
@@ -81,11 +84,15 @@ The system also includes a **weight prediction mechanism**: when users capture s
 - **Side View Capture Screen** – Camera alignment with guide lines  
 - **Side View Capture Preview** – Cow image with sticker for prediction reference  
 
+![App Demo](assets/note/appdemo3.png)
+
 ---
 
 ### 📱 Set 4
 - **Rear View Capture Screen** – Camera open for capturing rear view  
 - **Rear View Capture Preview** – Captured rear photo with replace option  
 - **Prediction Result Page** – Displays predicted weight, gender, and captured photos (side & rear)  
+
+![App Demo](assets/note/appdemo4.png)
 
 ---
