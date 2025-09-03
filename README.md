@@ -71,7 +71,7 @@ The system also includes a **weight prediction mechanism**: when users capture s
 
 - **Login Page** – Enter email & password, option for “Forgot Password”  
 - **Dashboard Page** – Shows cattle count, credits, and cattle list (with image, weight, price, color, age)  
-- **Sign Up Page (alternate view)** – Same create account form as in Set 1  
+- **Create Cattle Page** – Create Cattle by catlle related informations  
 
 ![App Demo](assets/note/appdemo2.png)
 
